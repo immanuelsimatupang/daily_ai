@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
             ...res.data.user,
             // Cek apakah email pengguna adalah admin@aiwave.com untuk memberikan akses admin
             // Ini hanya contoh sederhana, pada implementasi sebenarnya gunakan data dari server
-            isAdmin: res.data.user.email === 'admin@aiwave.com'
+            isAdmin: res.data.user.role === 'admin'
           };
           setUser(userData);
         }
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       // Tambahkan properti isAdmin ke objek user
       const userData = {
         ...res.data.user,
-        isAdmin: res.data.user.email === 'admin@aiwave.com'
+        isAdmin: res.data.user.role === 'admin'
       };
       setUser(userData);
       return res.data.user;
@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       // Tambahkan properti isAdmin ke objek user
       const userData = {
         ...res.data.user,
-        isAdmin: res.data.user.email === 'admin@aiwave.com'
+        isAdmin: res.data.user.role === 'admin'
       };
       setUser(userData);
       return res.data.user;

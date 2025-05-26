@@ -17,6 +17,13 @@ exports.protect = async (req, res, next) => {
       // Dapatkan user dari token
       req.user = await User.findById(decoded.id).select('-password');
 
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Pengguna untuk token ini tidak ditemukan'
+        });
+      }
+
       next();
     } catch (error) {
       console.error(error);

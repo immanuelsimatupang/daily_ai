@@ -40,7 +40,7 @@ const AdminPage = () => {
       
       // Hitung statistik artikel
       const total = response.data.articles.length;
-      const published = response.data.articles.filter(article => article.status === 'published').length;
+      const published = response.data.articles.filter(article => article.isPublished === true).length;
       const drafts = total - published;
       
       setStats(prevStats => ({
@@ -195,8 +195,8 @@ const AdminPage = () => {
                           <div className="text-sm font-medium text-gray-900">{article.title}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${article.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                            {article.status === 'published' ? 'Terpublikasi' : 'Draft'}
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${article.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {article.isPublished ? 'Terpublikasi' : 'Draft'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
