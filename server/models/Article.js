@@ -61,9 +61,20 @@ ArticleSchema.pre('save', function(next) {
 });
 
 // Method untuk meningkatkan jumlah view
-ArticleSchema.methods.incrementViewCount = function() {
-  this.viewCount += 1;
-  return this.save();
+ArticleSchema.methods.incrementViewCount = async function() {
+  try {
+    // Use findByIdAndUpdate with $inc for atomicity
+    // We don't strictly need the updated document back for this operation,
+    // but if we did, { new: true } would be added.
+    await this.constructor.findByIdAndUpdate(this._id, { $inc: { viewCount: 1 } });
+    // Optionally, update the current instance's viewCount if needed for immediate use,
+    // though the primary goal is atomic DB update.
+    this.viewCount += 1; 
+  } catch (error) {
+    console.error('Error incrementing view count for article ' + this._id + ':', error);
+    // Decide on error handling: rethrow, or just log?
+    // For now, just log, so it doesn't break the main request.
+  }
 };
 
 module.exports = mongoose.model('Article', ArticleSchema);
