@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const articleRoutes = require('./routes/articleRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Konfigurasi environment variables
 dotenv.config();
@@ -30,6 +31,22 @@ app.get('/', (req, res) => {
 // Gunakan routes
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
+app.use('/api/users', userRoutes);
+
+// Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack); // Log error stack for debugging
+
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Terjadi kesalahan pada server';
+
+  res.status(statusCode).json({
+    success: false,
+    message: message,
+    // Optional: you might want to conditionally add the stack in development
+    // stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+  });
+});
 
 // Definisikan port
 const PORT = process.env.PORT || 5000;

@@ -14,7 +14,7 @@ const AdminArticleEditor = () => {
     content: '',
     summary: '',
     imageUrl: '',
-    status: 'draft'
+    isPublished: false
   });
   const [isLoading, setIsLoading] = useState(!isNewArticle);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,7 +42,7 @@ const AdminArticleEditor = () => {
         content: response.data.article.content || '',
         summary: response.data.article.summary || '',
         imageUrl: response.data.article.imageUrl || '',
-        status: response.data.article.status || 'draft'
+        isPublished: response.data.article.isPublished || false
       });
     } catch (err) {
       console.error('Error fetching article:', err);
@@ -76,7 +76,7 @@ const AdminArticleEditor = () => {
           content: '',
           summary: '',
           imageUrl: '',
-          status: 'draft'
+          isPublished: false
         });
       } else {
         await articleAPI.updateArticle(id, formData);
@@ -96,7 +96,7 @@ const AdminArticleEditor = () => {
   const handlePublish = () => {
     setFormData(prev => ({
       ...prev,
-      status: prev.status === 'published' ? 'draft' : 'published'
+      isPublished: !prev.isPublished
     }));
   };
 
@@ -217,15 +217,15 @@ const AdminArticleEditor = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <div className="flex items-center">
             <span className="mr-4 text-gray-700">Status:</span>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handlePublish}
-              className={`px-4 py-2 rounded-lg ${formData.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
+              className={`px-4 py-2 rounded-lg ${formData.isPublished ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}
             >
-              {formData.status === 'published' ? 'Terpublikasi' : 'Draft'}
+              {formData.isPublished ? 'Terpublikasi' : 'Draft'}
             </button>
           </div>
-          
+
           <div className="flex gap-4">
             <Link 
               to="/admin" 
