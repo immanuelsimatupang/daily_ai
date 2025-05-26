@@ -30,6 +30,10 @@ const CuratedNewsSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  aiSummary: { // AI-generated summary
+    type: String,
+    trim: true,
+  },
   imageUrl: {
     type: String,
     trim: true,
