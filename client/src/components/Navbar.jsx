@@ -15,6 +15,9 @@ const Navbar = () => {
             <Link to="/" className="text-gray-600 hover:text-blue-600 transition-colors">
               Beranda
             </Link>
+            <Link to="/ai-news" className="text-gray-600 hover:text-blue-600 transition-colors">
+              Berita AI
+            </Link>
             
             {isAuthenticated ? (
               <>

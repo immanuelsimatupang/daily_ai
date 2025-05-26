@@ -7,6 +7,8 @@ const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
 const articleRoutes = require('./routes/articleRoutes');
 const userRoutes = require('./routes/userRoutes');
+const curatedNewsRoutes = require('./routes/curatedNewsRoutes');
+const { scheduleNewsFetching } = require('./services/newsScheduler'); // Import scheduler
 
 // Konfigurasi environment variables
 dotenv.config();
@@ -20,7 +22,11 @@ app.use(express.json());
 
 // Koneksi ke MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('Terhubung ke MongoDB'))
+  .then(() => {
+    console.log('Terhubung ke MongoDB');
+    // Initialize news fetching scheduler AFTER successful DB connection
+    scheduleNewsFetching(); 
+  })
   .catch(err => console.error('Gagal terhubung ke MongoDB:', err));
 
 // Route dasar
@@ -32,6 +38,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/articles', articleRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/curated-news', curatedNewsRoutes);
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {

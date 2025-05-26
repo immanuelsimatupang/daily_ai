@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminPage from './pages/AdminPage';
 import AdminArticleEditor from './pages/AdminArticleEditor';
+import AiNewsPage from './pages/AiNewsPage'; // Import AiNewsPage
 import Navbar from './components/Navbar';
 
 // Komponen untuk proteksi rute admin
@@ -39,6 +40,7 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/article/:id" element={<ArticleDetail />} />
+              <Route path="/ai-news" element={<AiNewsPage />} /> {/* Add AiNewsPage route */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/profile" element={<ProfilePage />} />
