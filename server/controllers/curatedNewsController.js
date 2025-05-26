@@ -1,5 +1,6 @@
 const axios = require('axios');
 const CuratedNews = require('../models/CuratedNews');
+const { classifyTextZeroShot, extractEntitiesNER, summarizeText, isNlpServiceAvailable } = require('../services/nlpService');
 
 // IMPORTANT: API Key should be in environment variables in a real application
 const NEWSAPI_API_KEY = '1e9f220784994bbe924bbb41a672d03d'; // User provided API Key for NewsAPI.org
@@ -20,6 +21,7 @@ async function _internalFetchAndProcessNews() {
   let articlesAdded = 0;
   let articlesFound = 0;
   const errorsEncountered = []; // Renamed for clarity in return object
+  const candidateCategoryLabels = Object.keys(categoriesKeywords);
 
   try {
     for (const query of broadSearchQueries) {
@@ -40,31 +42,102 @@ async function _internalFetchAndProcessNews() {
             continue;
           }
 
-          let bestCategory = null;
-          let maxMatches = 0;
-          const articleText = ((article.title || '') + ' ' + (article.description || '')).toLowerCase();
+          const articleTextForNlp = (article.title || '') + ' ' + (article.description || '');
+          let finalCategory = null;
+          let articleProcessedByAI = false;
 
-          for (const [categoryName, keywordsArray] of Object.entries(categoriesKeywords)) {
-            let currentMatches = 0;
-            for (const keyword of keywordsArray) {
-              if (articleText.includes(keyword.toLowerCase())) {
-                currentMatches++;
+          if (isNlpServiceAvailable() && articleTextForNlp.trim() !== '') {
+            try {
+              const classificationResult = await classifyTextZeroShot(articleTextForNlp, candidateCategoryLabels);
+              if (classificationResult && classificationResult.labels && classificationResult.scores) {
+                if (classificationResult.scores[0] > 0.5) { // Confidence threshold
+                  finalCategory = classificationResult.labels[0];
+                  articleProcessedByAI = true;
+                  console.log(`NLP Classification for "${article.title}": ${finalCategory} (Score: ${classificationResult.scores[0]})`);
+                } else {
+                  console.log(`NLP Classification for "${article.title}" below threshold. Score: ${classificationResult.scores[0]}`);
+                }
               }
-            }
-            if (currentMatches > maxMatches) {
-              maxMatches = currentMatches;
-              bestCategory = categoryName;
+            } catch (nlpError) {
+              console.error('Error during NLP classification for article "' + article.title + '":', nlpError);
             }
           }
 
-          if (maxMatches > 0 && bestCategory) {
-            const foundKeywordsForTags = new Set();
-            for (const keyword of Object.values(categoriesKeywords).flat()) {
-              if (articleText.includes(keyword.toLowerCase())) {
-                foundKeywordsForTags.add(keyword.toLowerCase().replace(/ /g, '-'));
+          if (!finalCategory) { // Fallback to keyword classification
+            let bestCategoryFromKeywords = null;
+            let maxMatches = 0;
+            const articleTextLowercase = articleTextForNlp.toLowerCase(); // Use the same combined text, lowercased
+
+            for (const [categoryName, keywordsArray] of Object.entries(categoriesKeywords)) {
+              let currentMatches = 0;
+              for (const keyword of keywordsArray) {
+                if (articleTextLowercase.includes(keyword.toLowerCase())) {
+                  currentMatches++;
+                }
+              }
+              if (currentMatches > maxMatches) {
+                maxMatches = currentMatches;
+                bestCategoryFromKeywords = categoryName;
               }
             }
-            const tags = Array.from(foundKeywordsForTags);
+            if (maxMatches > 0 && bestCategoryFromKeywords) {
+              finalCategory = bestCategoryFromKeywords;
+            }
+          }
+
+          if (finalCategory) { // Only save if a category was determined
+            let generatedTags = [];
+            const articleTextLowercaseForTags = articleTextForNlp.toLowerCase(); // Ensure it's lowercase for fallback
+
+            if (isNlpServiceAvailable() && articleTextForNlp.trim() !== '') {
+              try {
+                const nerResult = await extractEntitiesNER(articleTextForNlp); // Pass original case for NER if model prefers
+                if (nerResult && nerResult.length > 0) {
+                  generatedTags = nerResult;
+                  console.log(`NER Tags for "${article.title}": ${generatedTags.join(', ')}`);
+                } else {
+                  console.log(`NER for "${article.title}" yielded no tags or failed, falling back to keyword tags.`);
+                }
+              } catch (nerError) {
+                console.error(`Error during NER tagging for article "${article.title}":`, nerError);
+                // Fallback will be triggered as generatedTags remains empty
+              }
+            }
+
+            let articleAiSummary = null;
+            if (isNlpServiceAvailable()) {
+              const textToSummarize = article.description || article.content || ''; // Prefer description, fallback to content
+              if (textToSummarize.trim().length > 75) { // Summarize if text is reasonably long
+                console.log(`Attempting to summarize for: ${article.title}`);
+                try {
+                  articleAiSummary = await summarizeText(textToSummarize); // Default model and length params from nlpService
+                  if (articleAiSummary) {
+                    console.log(`AI Summary for "${article.title.substring(0,30)}...": ${articleAiSummary.substring(0, 100)}...`);
+                  } else {
+                    console.log(`Summarization for "${article.title.substring(0,30)}..." returned null or empty.`);
+                  }
+                } catch (summaryError) {
+                  console.error(`Error during summarization for article "${article.title}":`, summaryError);
+                }
+              } else {
+                console.log(`Text for "${article.title.substring(0,30)}..." too short, skipping summarization.`);
+              }
+            }
+
+            if (generatedTags.length === 0) { // Fallback to keyword-based tags
+              const foundKeywordsForTags = new Set();
+              for (const kwArray of Object.values(categoriesKeywords)) {
+                for (const keyword of kwArray) {
+                  if (articleTextLowercaseForTags.includes(keyword.toLowerCase())) {
+                    foundKeywordsForTags.add(keyword.toLowerCase().replace(/ /g, '-'));
+                  }
+                }
+              }
+              generatedTags = Array.from(foundKeywordsForTags);
+              if (generatedTags.length > 0) {
+                console.log(`Fallback Keyword Tags for "${article.title}": ${generatedTags.join(', ')}`);
+              }
+            }
 
             const newArticleEntry = new CuratedNews({
               title: article.title,
@@ -74,13 +147,16 @@ async function _internalFetchAndProcessNews() {
               description: article.description,
               content: article.content,
               imageUrl: article.urlToImage,
-              category: bestCategory,
+              category: finalCategory,
+              processedByAI: articleProcessedByAI, // This flag should now primarily reflect classification
               keywordsUsed: [query],
-              tags: tags,
+              tags: generatedTags,
+              aiSummary: articleAiSummary // Add the new AI summary
             });
-            
             await newArticleEntry.save();
             articlesAdded++;
+          } else {
+            console.log(`Article "${article.title}" skipped as no category could be determined.`);
           }
         }
       } catch (apiError) {

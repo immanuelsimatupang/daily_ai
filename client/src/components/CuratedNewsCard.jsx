@@ -35,19 +35,32 @@ const CuratedNewsCard = ({ article }) => {
           </a>
         </h3>
         
-        {article.description && (
-          <p className="text-gray-600 mb-4 line-clamp-3">
-            {article.description}
-          </p>
-        )}
+        {article.aiSummary ? (
+          <>
+            <p className="text-gray-700 font-semibold text-sm mb-1">AI Summary:</p>
+            <p className="text-gray-600 mb-4 line-clamp-3">{article.aiSummary}</p>
+          </>
+        ) : article.description ? (
+          <>
+            <p className="text-gray-700 font-semibold text-sm mb-1">Description:</p>
+            <p className="text-gray-600 mb-4 line-clamp-3">{article.description}</p>
+          </>
+        ) : null}
         
-        <div className="flex justify-between items-center text-sm text-gray-500">
+        <div className="flex justify-between items-center text-sm text-gray-500 mb-3"> {/* Added mb-3 for spacing before tags */}
           <span>Source: {article.sourceName || 'N/A'}</span>
-          {/* Future: Add tags or other info here */}
         </div>
-         {article.keywordsUsed && article.keywordsUsed.length > 0 && (
-          <div className="mt-2">
-            <span className="text-xs text-gray-400">Keywords: {article.keywordsUsed.join(', ')}</span>
+
+        {article.tags && article.tags.length > 0 && (
+          <div className="mt-3 pt-2 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-1">Tags:</p>
+            <div className="flex flex-wrap gap-1">
+              {article.tags.slice(0, 5).map((tag, index) => ( // Show up to 5 tags
+                <span key={index} className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>
